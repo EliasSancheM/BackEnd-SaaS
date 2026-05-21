@@ -41,6 +41,6 @@ class ReportApiTest extends TestCase
 
         $response = $this->getJson('/api/reports/export/csv');
 
-        $response->assertOk()->assertJsonPath('message', 'Export CSV not implemented yet.');
+        $response->assertOk()->assertJsonStructure(['data']);
     }
 }

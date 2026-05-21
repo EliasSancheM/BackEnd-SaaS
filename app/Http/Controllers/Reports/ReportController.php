@@ -28,8 +28,10 @@ class ReportController extends Controller
 
     public function exportCsv(): JsonResponse
     {
+        $rows = Invoice::query()->get(['number', 'status', 'total']);
+
         return response()->json([
-            'message' => 'Export CSV not implemented yet.',
+            'data' => $rows,
         ]);
     }
 }

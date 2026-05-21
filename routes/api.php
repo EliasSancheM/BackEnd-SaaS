@@ -8,6 +8,7 @@ use App\Http\Controllers\Invoices\InvoicePdfController;
 use App\Http\Controllers\Payments\PaymentController;
 use App\Http\Controllers\Reports\ReportController;
 use App\Http\Controllers\Tenants\TenantController;
+use App\Http\Controllers\Users\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -25,4 +26,5 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
     Route::get('/reports/revenue', [ReportController::class, 'revenue']);
     Route::get('/reports/invoices-summary', [ReportController::class, 'invoicesSummary']);
     Route::get('/reports/export/csv', [ReportController::class, 'exportCsv']);
+    Route::get('/users', [UserController::class, 'index']);
 });
