@@ -1,0 +1,309 @@
+openapi: 3.0.3
+info:
+  title: BackEnd SaaS API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api
+tags:
+  - name: Auth
+  - name: Tenants
+  - name: Clients
+  - name: Invoices
+  - name: Payments
+  - name: Reports
+  - name: Users
+paths:
+  /register:
+    post:
+      tags: [Auth]
+      summary: Create tenant and owner user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [company_name, name, email, password, password_confirmation]
+              properties:
+                company_name:
+                  type: string
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                password_confirmation:
+                  type: string
+              example:
+                company_name: New Company
+                name: Owner User
+                email: owner@example.com
+                password: password123
+                password_confirmation: password123
+      responses:
+        '201':
+          description: Created
+  /login:
+    post:
+      tags: [Auth]
+      summary: Login and return token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+              example:
+                email: test@example.com
+                password: password
+      responses:
+        '200':
+          description: OK
+  /logout:
+    post:
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /me:
+    get:
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user
+  /tenant:
+    get:
+      tags: [Tenants]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current tenant
+  /users:
+    get:
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Users list
+  /clients:
+    get:
+      tags: [Clients]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Clients list
+    post:
+      tags: [Clients]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                rut:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                address:
+                  type: string
+                city:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: Created
+  /clients/{client}:
+    get:
+      tags: [Clients]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: client
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+    put:
+      tags: [Clients]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: client
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags: [Clients]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: client
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: No Content
+  /invoices:
+    get:
+      tags: [Invoices]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Invoices list
+    post:
+      tags: [Invoices]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Created
+  /invoices/{invoice}:
+    get:
+      tags: [Invoices]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: invoice
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+    put:
+      tags: [Invoices]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: invoice
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags: [Invoices]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: invoice
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: No Content
+  /invoices/{invoice}/pdf:
+    get:
+      tags: [Invoices]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: invoice
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: PDF file
+  /invoice-items:
+    get:
+      tags: [Invoices]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Invoice items list
+    post:
+      tags: [Invoices]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Created
+  /payments:
+    get:
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Payments list
+    post:
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Created
+  /reports/revenue:
+    get:
+      tags: [Reports]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Revenue summary
+  /reports/invoices-summary:
+    get:
+      tags: [Reports]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Invoice status summary
+  /reports/export/csv:
+    get:
+      tags: [Reports]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV export payload
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
