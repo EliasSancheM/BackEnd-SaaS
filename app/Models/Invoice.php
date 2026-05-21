@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\InvoiceFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -75,5 +76,14 @@ class Invoice extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope('tenant', function (Builder $builder): void {
+            if (auth()->check()) {
+                $builder->where('tenant_id', auth()->user()->tenant_id);
+            }
+        });
     }
 }

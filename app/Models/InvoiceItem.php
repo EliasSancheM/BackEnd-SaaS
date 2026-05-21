@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\InvoiceItemFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -48,5 +49,14 @@ class InvoiceItem extends Model
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope('tenant', function (Builder $builder): void {
+            if (auth()->check()) {
+                $builder->where('tenant_id', auth()->user()->tenant_id);
+            }
+        });
     }
 }
