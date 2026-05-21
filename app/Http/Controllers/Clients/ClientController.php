@@ -39,6 +39,10 @@ class ClientController extends Controller
 
     public function destroy(Client $client): JsonResponse
     {
+        if ($client->invoices()->exists()) {
+            return response()->json(['message' => 'El cliente tiene facturas asociadas.'], 409);
+        }
+
         $client->delete();
 
         return response()->json([], 204);
