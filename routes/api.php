@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Clients\ClientController;
+use App\Http\Controllers\Invoices\InvoiceController;
+use App\Http\Controllers\Invoices\InvoiceItemController;
 use App\Http\Controllers\Tenants\TenantController;
 use Illuminate\Support\Facades\Route;
 
@@ -13,4 +15,6 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
     Route::get('/me', [AuthController::class, 'me']);
     Route::get('/tenant', [TenantController::class, 'show']);
     Route::apiResource('clients', ClientController::class);
+    Route::apiResource('invoices', InvoiceController::class);
+    Route::apiResource('invoice-items', InvoiceItemController::class);
 });
