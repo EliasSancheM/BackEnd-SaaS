@@ -11,6 +11,7 @@ class InvoiceSendController extends Controller
 {
     public function __invoke(Invoice $invoice): JsonResponse
     {
+        $this->authorize('send', $invoice);
         if ($invoice->status !== 'draft') {
             return response()->json(['message' => 'Only draft invoices can be sent'], 422);
         }

@@ -19,6 +19,8 @@ class CheckoutController extends Controller
 
     public function __invoke(Request $request, Payment $payment): JsonResponse
     {
+        $this->authorize('update', $payment);
+
         $invoice = $payment->invoice()->with('items')->firstOrFail();
 
         if ($payment->status !== 'pending') {
