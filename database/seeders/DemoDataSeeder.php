@@ -56,6 +56,22 @@ class DemoDataSeeder extends Seeder
         $ownerRole = Role::where('name', 'owner')->where('tenant_id', $tenant->id)->first();
         $ownerRole->syncPermissions($permissions);
 
+        $adminRole = Role::where('name', 'admin')->where('tenant_id', $tenant->id)->first();
+        $adminRole->syncPermissions($permissions);
+
+        $billingRole = Role::where('name', 'billing')->where('tenant_id', $tenant->id)->first();
+        $billingRole->syncPermissions([
+            'clients.view',
+            'invoices.view', 'invoices.create', 'invoices.edit', 'invoices.send',
+        ]);
+
+        $viewerRole = Role::where('name', 'viewer')->where('tenant_id', $tenant->id)->first();
+        $viewerRole->syncPermissions([
+            'clients.view',
+            'invoices.view',
+            'reports.view',
+        ]);
+
         $user->assignRole('owner');
 
         $client = Client::create([

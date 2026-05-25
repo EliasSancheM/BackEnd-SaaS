@@ -136,6 +136,32 @@ class InvoiceApiTest extends TestCase
         $response->assertNoContent();
     }
 
+    public function test_show_returns_single_invoice_item(): void
+    {
+        $this->seedDemoData();
+        $user = User::where('email', 'test@example.com')->firstOrFail();
+        $item = InvoiceItem::where('description', 'Servicio mensual')->firstOrFail();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/invoice-items/'.$item->id);
+
+        $response->assertOk()->assertJsonPath('description', 'Servicio mensual');
+    }
+
+    public function test_store_validates_required_fields(): void
+    {
+        $this->seedDemoData();
+        $user = User::where('email', 'test@example.com')->firstOrFail();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/invoices', []);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['client_id', 'number', 'issue_date']);
+    }
+
     public function test_send_changes_status_to_sent(): void
     {
         $this->seedDemoData();

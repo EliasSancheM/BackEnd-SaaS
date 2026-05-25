@@ -82,6 +82,19 @@ class PaymentApiTest extends TestCase
         $response->assertStatus(422);
     }
 
+    public function test_show_returns_payment(): void
+    {
+        $this->seedDemoData();
+        $user = User::where('email', 'test@example.com')->firstOrFail();
+        $payment = Payment::query()->firstOrFail();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/payments/'.$payment->id);
+
+        $response->assertOk()->assertJsonPath('id', $payment->id);
+    }
+
     public function test_update_changes_payment(): void
     {
         $this->seedDemoData();
@@ -95,5 +108,31 @@ class PaymentApiTest extends TestCase
         ]);
 
         $response->assertOk()->assertJsonPath('status', 'paid');
+    }
+
+    public function test_store_validates_required_fields(): void
+    {
+        $this->seedDemoData();
+        $user = User::where('email', 'test@example.com')->firstOrFail();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/payments', []);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['invoice_id', 'amount']);
+    }
+
+    public function test_destroy_removes_payment(): void
+    {
+        $this->seedDemoData();
+        $user = User::where('email', 'test@example.com')->firstOrFail();
+        $payment = Payment::query()->firstOrFail();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->deleteJson('/api/payments/'.$payment->id);
+
+        $response->assertNoContent();
     }
 }

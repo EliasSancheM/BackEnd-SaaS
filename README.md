@@ -1,55 +1,136 @@
 # BackEnd SaaS
 
-API Laravel para facturacion multi-tenant.
+API Laravel para facturación multi-tenant con pagos (MercadoPago + PayPal).
 
 ## Stack
-- Laravel 13
+- Laravel 13 / PHP 8.5+
 - MariaDB
-- Sanctum
-- Spatie Permission
-- DomPDF
-- MercadoPago SDK
+- Sanctum (autenticación por tokens)
+- Spatie Permission (roles y permisos multi-tenant)
+- DomPDF (generación de PDF)
+- MercadoPago SDK 3.x
+- PayPal Orders API (v2)
 
 ## Requisitos
 - PHP 8.5+
 - Composer
-- MariaDB
+- MariaDB / MySQL
 
-## Instalacion
+## Instalación
+
 ```bash
 composer install
 php artisan key:generate
 ```
 
-Configura `.env` con tu base de datos y luego ejecuta:
+Configura `.env` con tu base de datos, credenciales de MercadoPago y PayPal, luego:
+
 ```bash
 php artisan migrate:fresh --seed
 ```
 
 ## Datos de prueba
-El proyecto incluye un seeder demo con:
-- tenant demo
-- usuario `test@example.com`
-- password `password`
-- cliente, factura, item y pago de ejemplo
+
+| Rol | Email | Password |
+|-----|-------|----------|
+| owner | `test@example.com` | `password` |
+
+Incluye: tenant demo, cliente (Acme SpA), factura, item y pago de ejemplo.
 
 ## Tests
+
 ```bash
 php artisan test --compact
 ```
 
 ## API
-Rutas base disponibles:
-- `POST /api/register`
-- `POST /api/login`
-- `POST /api/logout`
-- `GET /api/me`
-- `GET /api/tenant`
-- `GET|POST|PUT|DELETE /api/clients`
-- `GET|POST|PUT|DELETE /api/invoices`
-- `GET|POST|PUT|DELETE /api/invoice-items`
+
+### Autenticación (públicas)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/api/register` | Registrar nueva empresa |
+| POST | `/api/login` | Iniciar sesión |
+
+### Webhooks (públicas)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/api/webhooks/mercadopago` | Webhook MercadoPago |
+| POST | `/api/webhooks/paypal` | Webhook PayPal |
+
+### Privadas (requieren `auth:sanctum`)
+| Método | Ruta | Rol mínimo | Descripción |
+|--------|------|------------|-------------|
+| POST | `/api/logout` | — | Cerrar sesión |
+| GET | `/api/me` | — | Perfil del usuario |
+| GET | `/api/tenant` | — | Empresa actual |
+| GET | `/api/users` | admin | Listar usuarios |
+
+#### Clientes
+| Método | Ruta | Rol mínimo |
+|--------|------|------------|
+| GET | `/api/clients` | viewer |
+| GET | `/api/clients/{id}` | viewer |
+| POST | `/api/clients` | billing |
+| PUT | `/api/clients/{id}` | billing |
+| DELETE | `/api/clients/{id}` | billing |
+
+#### Facturas
+| Método | Ruta | Rol mínimo |
+|--------|------|------------|
+| GET | `/api/invoices` | viewer |
+| GET | `/api/invoices/{id}` | viewer |
+| POST | `/api/invoices` | billing |
+| PUT | `/api/invoices/{id}` | billing |
+| DELETE | `/api/invoices/{id}` | billing |
+| GET | `/api/invoices/{id}/pdf` | viewer |
+| POST | `/api/invoices/{id}/send` | billing |
+
+#### Items de factura
+| Método | Ruta | Rol mínimo |
+|--------|------|------------|
+| GET | `/api/invoice-items` | viewer |
+| GET | `/api/invoice-items/{id}` | viewer |
+| POST | `/api/invoice-items` | billing |
+| PUT | `/api/invoice-items/{id}` | billing |
+| DELETE | `/api/invoice-items/{id}` | billing |
+
+#### Pagos
+| Método | Ruta | Rol mínimo |
+|--------|------|------------|
+| GET | `/api/payments` | viewer |
+| GET | `/api/payments/{id}` | viewer |
+| POST | `/api/payments` | billing |
+| PUT | `/api/payments/{id}` | billing |
+| DELETE | `/api/payments/{id}` | billing |
+| POST | `/api/payments/{id}/checkout` | billing |
+
+#### Reportes
+| Método | Ruta | Rol mínimo |
+|--------|------|------------|
+| GET | `/api/reports/revenue` | viewer |
+| GET | `/api/reports/invoices-summary` | viewer |
+| GET | `/api/reports/export/csv` | billing |
+
+## Roles
+
+| Rol | Permisos |
+|-----|----------|
+| **owner** | Todos |
+| **admin** | Todos |
+| **billing** | Ver clientes, gestionar facturas y pagos |
+| **viewer** | Solo lectura (clientes, facturas, reportes) |
+
+## Variables de entorno requeridas
+
+```
+MERCADOPAGO_ACCESS_TOKEN=...
+MERCADOPAGO_PUBLIC_KEY=...
+PAYPAL_CLIENT_ID=...
+PAYPAL_SECRET=...
+PAYPAL_WEBHOOK_ID=...
+```
 
 ## Notas
-- La app usa `tenant_id` para separar datos por empresa.
-- `auth:sanctum` protege los endpoints privados.
-- Los roles y permisos se siembran por tenant.
+- Multi-tenant por `tenant_id` con scope global.
+- Los roles y permisos se asignan por tenant (Spatie teams).
+- Los emails de factura se envían con `MAIL_MAILER=log` en desarrollo.

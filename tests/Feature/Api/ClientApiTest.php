@@ -57,6 +57,19 @@ class ClientApiTest extends TestCase
         $response->assertOk()->assertJsonPath('name', 'Acme Updated');
     }
 
+    public function test_store_validates_required_fields(): void
+    {
+        $this->seedDemoData();
+        $user = User::where('email', 'test@example.com')->firstOrFail();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/clients', []);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['name']);
+    }
+
     public function test_delete_rejects_client_with_invoices(): void
     {
         $this->seedDemoData();
