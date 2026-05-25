@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Payments;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Payments\StorePaymentRequest;
+use App\Http\Requests\Payments\UpdatePaymentRequest;
 use App\Models\Payment;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
@@ -38,11 +38,11 @@ class PaymentController extends Controller
         return response()->json($payment->load(['invoice']));
     }
 
-    public function update(Request $request, Payment $payment): JsonResponse
+    public function update(UpdatePaymentRequest $request, Payment $payment): JsonResponse
     {
         $this->authorize('update', $payment);
 
-        $payment->update($request->all());
+        $payment->update($request->validated());
 
         return response()->json($payment->refresh());
     }
