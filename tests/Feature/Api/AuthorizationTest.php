@@ -8,6 +8,8 @@ use App\Models\Payment;
 use App\Models\Tenant;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -211,10 +213,10 @@ class AuthorizationTest extends TestCase
 
         $permissions = ['clients.view', 'invoices.view'];
         foreach ($permissions as $perm) {
-            \Spatie\Permission\Models\Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
+            Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
         }
 
-        $role = \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'viewer', 'guard_name' => 'web', 'tenant_id' => $otherTenant->id]);
+        $role = Role::firstOrCreate(['name' => 'viewer', 'guard_name' => 'web', 'tenant_id' => $otherTenant->id]);
         $role->syncPermissions($permissions);
 
         $otherUser = User::factory()->create(['tenant_id' => $otherTenant->id]);

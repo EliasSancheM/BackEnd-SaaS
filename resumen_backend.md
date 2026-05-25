@@ -1,24 +1,24 @@
 # SaaS de Facturación — Resumen Backend
 
-**Stack:** Laravel 11 · MariaDB · Sanctum · Spatie Permission
+**Stack:** Laravel 13 · MariaDB · Sanctum · Spatie Permission
 
 ---
 
 ## 1. Descripción general
 
-API REST construida en Laravel 11 que sirve exclusivamente a la app Next.js. No renderiza vistas Blade para usuarios finales. Cada empresa opera en un tenant aislado; sus datos nunca se mezclan con los de otro tenant.
+API REST construida en Laravel 13 que sirve exclusivamente a la app Next.js. No renderiza vistas Blade para usuarios finales. Cada empresa opera en un tenant aislado; sus datos nunca se mezclan con los de otro tenant.
 
 | Aspecto | Decisión |
 |---|---|
-| Framework | Laravel 11 |
+| Framework | Laravel 13 |
 | Base de datos | MariaDB |
 | Autenticación | Laravel Sanctum (tokens SPA) |
-| Roles y permisos | Spatie Laravel Permission |
+| Roles y permisos | Spatie Laravel Permission (teams) |
 | Generación de PDFs | DomPDF (barryvdh/laravel-dompdf) |
 | Colas de trabajo | Laravel Queues con driver database |
-| Email | Laravel Mail + Resend / SMTP |
-| Pagos | MercadoPago SDK + Webhooks |
-| Multi-tenancy | `tenant_id` en cada tabla + middleware |
+| Email | Laravel Mail + log (desarrollo) |
+| Pagos | MercadoPago SDK + PayPal Orders API |
+| Multi-tenancy | `tenant_id` en cada tabla + global scope |
 
 ---
 
@@ -28,24 +28,34 @@ API REST construida en Laravel 11 que sirve exclusivamente a la app Next.js. No 
 app/
   Http/
     Controllers/
-      Auth/          → AuthController, RegisterController
-      Tenants/       → TenantController
+      Auth/          → AuthController
       Clients/       → ClientController
-      Invoices/      → InvoiceController, InvoiceItemController
-      Payments/      → PaymentController, WebhookController
+      Invoices/      → InvoiceController, InvoiceItemController, InvoicePdfController, InvoiceSendController
+      Payments/      → PaymentController, CheckoutController
       Reports/       → ReportController
+      Tenants/       → TenantController
+      Users/         → UserController
+      Webhooks/      → MercadoPagoWebhookController, PayPalWebhookController
     Middleware/
       TenantResolver.php   → inyecta tenant_id en cada request
       EnsureHasRole.php    → verifica rol mínimo requerido
+    Requests/
+      Clients/       → StoreClientRequest, UpdateClientRequest
+      Invoices/      → StoreInvoiceRequest, UpdateInvoiceRequest, StoreInvoiceItemRequest, UpdateInvoiceItemRequest
+      Payments/      → StorePaymentRequest, UpdatePaymentRequest
   Models/
     Tenant.php, User.php, Client.php
     Invoice.php, InvoiceItem.php, Payment.php
   Jobs/
-    ProcessMercadoPagoPayment.php
-    GenerateInvoicePdf.php
     SendInvoiceEmail.php
+  Mail/
+    InvoiceEmail.php
   Policies/
-    InvoicePolicy.php, ClientPolicy.php
+    ClientPolicy.php, InvoicePolicy.php, InvoiceItemPolicy.php, PaymentPolicy.php
+  Services/
+    Payments/
+      MercadoPagoService.php
+      PayPalService.php
 ```
 
 ---
@@ -70,7 +80,7 @@ app/
 | `clients` | Clientes de cada empresa. Campos: rut, email, teléfono, dirección. |
 | `invoices` | Facturas. Estado: `draft` → `sent` → `paid` / `overdue` / `cancelled`. |
 | `invoice_items` | Líneas de detalle de cada factura (descripción, cantidad, precio unitario). |
-| `payments` | Registro de pagos vinculados a MercadoPago. Guarda `mp_payment_id`. |
+| `payments` | Registro de pagos multi-providers (MercadoPago, PayPal, manual). |
 
 ### 3.3 Jerarquía de roles
 
@@ -133,59 +143,91 @@ protected static function booted()
 
 ## 6. Endpoints principales
 
-Todas las rutas están bajo `/api` y protegidas por `auth:sanctum` + `TenantResolver`.
+Todas las rutas están bajo `/api` y protegidas por `auth:sanctum` + `TenantResolver` + `EnsureHasRole`.
 
 ### Clientes
 
-| Método | Ruta | Permiso |
+| Método | Ruta | Rol mínimo |
 |---|---|---|
-| GET | `/api/clients` | `clients.view` |
-| POST | `/api/clients` | `clients.create` |
-| GET | `/api/clients/{id}` | `clients.view` |
-| PUT | `/api/clients/{id}` | `clients.edit` |
-| DELETE | `/api/clients/{id}` | `clients.delete` |
+| GET | `/api/clients` | viewer |
+| POST | `/api/clients` | billing |
+| GET | `/api/clients/{id}` | viewer |
+| PUT | `/api/clients/{id}` | billing |
+| DELETE | `/api/clients/{id}` | billing |
 
 ### Facturas
 
-| Método | Ruta | Permiso |
+| Método | Ruta | Rol mínimo |
 |---|---|---|
-| GET | `/api/invoices` | `invoices.view` |
-| POST | `/api/invoices` | `invoices.create` |
-| GET | `/api/invoices/{id}` | `invoices.view` |
-| PUT | `/api/invoices/{id}` | `invoices.edit` |
-| POST | `/api/invoices/{id}/send` | `invoices.send` |
-| GET | `/api/invoices/{id}/pdf` | `invoices.view` |
-| POST | `/api/invoices/{id}/pay` | `invoices.create` |
-| DELETE | `/api/invoices/{id}` | `invoices.delete` |
+| GET | `/api/invoices` | viewer |
+| POST | `/api/invoices` | billing |
+| GET | `/api/invoices/{id}` | viewer |
+| PUT | `/api/invoices/{id}` | billing |
+| POST | `/api/invoices/{id}/send` | billing |
+| GET | `/api/invoices/{id}/pdf` | viewer |
+| DELETE | `/api/invoices/{id}` | billing |
+
+### Items de factura
+
+| Método | Ruta | Rol mínimo |
+|---|---|---|
+| GET | `/api/invoice-items` | viewer |
+| POST | `/api/invoice-items` | billing |
+| GET | `/api/invoice-items/{id}` | viewer |
+| PUT | `/api/invoice-items/{id}` | billing |
+| DELETE | `/api/invoice-items/{id}` | billing |
+
+### Pagos
+
+| Método | Ruta | Rol mínimo |
+|---|---|---|
+| GET | `/api/payments` | viewer |
+| POST | `/api/payments` | billing |
+| GET | `/api/payments/{id}` | viewer |
+| PUT | `/api/payments/{id}` | billing |
+| DELETE | `/api/payments/{id}` | billing |
+| POST | `/api/payments/{id}/checkout` | billing |
 
 ### Reportes
 
-| Método | Ruta | Permiso |
+| Método | Ruta | Rol mínimo |
 |---|---|---|
-| GET | `/api/reports/revenue` | `reports.view` |
-| GET | `/api/reports/invoices-summary` | `reports.view` |
-| GET | `/api/reports/export/csv` | `reports.export` |
+| GET | `/api/reports/revenue` | viewer |
+| GET | `/api/reports/invoices-summary` | viewer |
+| GET | `/api/reports/export/csv` | billing |
+
+### Webhooks (públicas)
+
+| Método | Ruta | Propósito |
+|---|---|---|
+| POST | `/api/webhooks/mercadopago` | Notificaciones de pago MercadoPago |
+| POST | `/api/webhooks/paypal` | Notificaciones de pago PayPal |
 
 ---
 
-## 7. Flujo de pagos (MercadoPago)
+## 7. Flujo de pagos
 
-1. Next.js llama a `POST /api/invoices/{id}/pay`.
-2. Laravel crea una Preference en la API de MercadoPago con el monto y referencia de la factura.
-3. Devuelve la `checkout_url` a Next.js, que redirige al usuario.
-4. El usuario paga en MercadoPago y es redirigido de vuelta a la app.
-5. MercadoPago envía un webhook a `POST /api/webhooks/mercadopago`.
-6. Laravel responde `200` inmediatamente y despacha `ProcessMercadoPagoPayment` a la cola.
-7. El Job consulta el estado del pago a la API de MercadoPago y actualiza `invoice.status` a `paid`.
-8. Si el pago es aprobado, se despacha `SendInvoiceEmail` para notificar al cliente.
+### MercadoPago Checkout Pro
 
-> El webhook nunca ejecuta lógica pesada directamente. Siempre delega a un Job para responder en menos de 2 segundos y evitar reintentos de MercadoPago.
+1. Se crea un Payment con `provider = mercadopago`.
+2. `POST /api/payments/{id}/checkout` crea una Preference en MercadoPago y devuelve `init_point`.
+3. El usuario paga en MercadoPago.
+4. MercadoPago envía webhook a `POST /api/webhooks/mercadopago`.
+5. El webhook actualiza el estado del payment.
+
+### PayPal Orders
+
+1. Se crea un Payment con `provider = paypal`.
+2. `POST /api/payments/{id}/checkout` crea una Order en PayPal y devuelve `approval_url`.
+3. El usuario aprueba y PayPal redirige de vuelta.
+4. PayPal envía webhook `CHECKOUT.ORDER.APPROVED` a `POST /api/webhooks/paypal`.
+5. El webhook captura la orden y actualiza el estado.
 
 ---
 
 ## 8. Generación de PDFs
 
-DomPDF convierte una vista Blade a PDF. El proceso corre en background vía Job.
+DomPDF convierte una vista Blade a PDF.
 
 ```php
 $pdf = Pdf::loadView('invoices.pdf', ['invoice' => $invoice]);
@@ -201,19 +243,37 @@ La vista `resources/views/invoices/pdf.blade.php` usa estilos CSS inline para m�
 | Paquete | Propósito |
 |---|---|
 | `laravel/sanctum` | Autenticación API con tokens |
-| `spatie/laravel-permission` | Roles y permisos por tenant |
+| `spatie/laravel-permission` | Roles y permisos por tenant (teams) |
 | `barryvdh/laravel-dompdf` | Generación de PDFs desde Blade |
 | `mercadopago/dx-php` | SDK oficial de MercadoPago |
+| `guzzlehttp/guzzle` | Cliente HTTP para PayPal API |
 | `laravel/horizon` *(opcional)* | Dashboard visual para monitorear Queues |
 
 ---
 
-## 10. Plan de desarrollo (8 semanas)
+## 10. Envío de emails
 
-| Semanas | Tareas |
-|---|---|
-| 1 – 2 | Setup del proyecto, migraciones, Sanctum, registro con multi-tenancy, roles con Spatie. |
-| 3 – 4 | CRUD de clientes y facturas, policies, paginación, validaciones. |
-| 5 – 6 | Generación de PDFs, envío de emails, endpoint de descarga. |
-| 7 | Integración con MercadoPago: preferencias, webhook, Jobs. |
-| 8 | Endpoints de reportes, exportación CSV, tests básicos, documentación API. |
+Las facturas se envían por email:
+
+1. `POST /api/invoices/{id}/send` (solo facturas en draft).
+2. El controller despacha `SendInvoiceEmail` a la cola.
+3. El Job genera el PDF con DomPDF, lo adjunta al Mailable y envía.
+4. El invoice se marca como `sent` y se guarda `sent_at`.
+
+En desarrollo los emails se guardan en `storage/logs/laravel.log` (`MAIL_MAILER=log`).
+
+---
+
+## 11. Tests
+
+56 tests (PHPUnit), 107 assertions:
+- Autenticación (register, login, logout, me, tenant)
+- CRUD clientes, facturas, items, pagos
+- Envío de facturas (send)
+- Generación de PDFs
+- Checkout (MercadoPago, PayPal)
+- Webhooks (MercadoPago, PayPal)
+- Roles y permisos (viewer no puede crear, billing no puede eliminar facturas)
+- Validación de campos requeridos
+- Exportación CSV
+- Reportes

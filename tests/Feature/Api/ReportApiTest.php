@@ -32,15 +32,17 @@ class ReportApiTest extends TestCase
         $response->assertOk()->assertJsonStructure(['draft', 'sent', 'paid', 'overdue', 'cancelled']);
     }
 
-    public function test_export_csv_returns_placeholder(): void
+    public function test_export_csv_returns_csv_file(): void
     {
         $this->seedDemoData();
         $user = User::where('email', 'test@example.com')->firstOrFail();
 
         Sanctum::actingAs($user);
 
-        $response = $this->getJson('/api/reports/export/csv');
+        $response = $this->get('/api/reports/export/csv');
 
-        $response->assertOk()->assertJsonStructure(['data']);
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'text/csv; charset=utf-8');
+        $response->assertHeader('Content-Disposition', 'attachment; filename=facturas.csv');
     }
 }

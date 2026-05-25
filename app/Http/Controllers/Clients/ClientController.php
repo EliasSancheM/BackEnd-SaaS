@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Clients;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Clients\StoreClientRequest;
+use App\Http\Requests\Clients\UpdateClientRequest;
 use App\Models\Client;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class ClientController extends Controller
 {
@@ -36,11 +36,11 @@ class ClientController extends Controller
         return response()->json($client);
     }
 
-    public function update(Request $request, Client $client): JsonResponse
+    public function update(UpdateClientRequest $request, Client $client): JsonResponse
     {
         $this->authorize('update', $client);
 
-        $client->update($request->only(['name', 'rut', 'email', 'phone', 'address', 'city', 'notes']));
+        $client->update($request->validated());
 
         return response()->json($client->refresh());
     }

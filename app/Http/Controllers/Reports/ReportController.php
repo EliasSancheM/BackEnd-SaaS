@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Reports;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use Illuminate\Http\JsonResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
@@ -26,12 +27,24 @@ class ReportController extends Controller
         ]);
     }
 
-    public function exportCsv(): JsonResponse
+    public function exportCsv(): StreamedResponse
     {
         $rows = Invoice::query()->get(['number', 'status', 'total']);
 
-        return response()->json([
-            'data' => $rows,
+        $callback = function () use ($rows): void {
+            $handle = fopen('php://output', 'w');
+
+            fputcsv($handle, ['Número', 'Estado', 'Total']);
+
+            foreach ($rows as $row) {
+                fputcsv($handle, [$row->number, $row->status, $row->total]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->streamDownload($callback, 'facturas.csv', [
+            'Content-Type' => 'text/csv; charset=utf-8',
         ]);
     }
 }

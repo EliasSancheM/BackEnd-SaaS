@@ -12,6 +12,7 @@ tags:
   - name: Payments
   - name: Reports
   - name: Users
+  - name: Webhooks
 paths:
   /register:
     post:
@@ -162,6 +163,27 @@ paths:
           required: true
           schema:
             type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                rut:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                address:
+                  type: string
+                city:
+                  type: string
+                notes:
+                  type: string
       responses:
         '200':
           description: OK
@@ -190,6 +212,37 @@ paths:
       tags: [Invoices]
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [client_id, number, issue_date, due_date, currency, subtotal, tax_total, total]
+              properties:
+                client_id:
+                  type: integer
+                number:
+                  type: string
+                issue_date:
+                  type: string
+                  format: date
+                due_date:
+                  type: string
+                  format: date
+                status:
+                  type: string
+                  default: draft
+                currency:
+                  type: string
+                subtotal:
+                  type: number
+                tax_total:
+                  type: number
+                total:
+                  type: number
+                notes:
+                  type: string
       responses:
         '201':
           description: Created
@@ -247,6 +300,20 @@ paths:
       responses:
         '200':
           description: PDF file
+  /invoices/{invoice}/send:
+    post:
+      tags: [Invoices]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: invoice
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Invoice sent
   /invoice-items:
     get:
       tags: [Invoices]
@@ -259,9 +326,69 @@ paths:
       tags: [Invoices]
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invoice_id, description, quantity, unit_price, total]
+              properties:
+                invoice_id:
+                  type: integer
+                description:
+                  type: string
+                quantity:
+                  type: number
+                unit_price:
+                  type: number
+                total:
+                  type: number
+                sort_order:
+                  type: integer
       responses:
         '201':
           description: Created
+  /invoice-items/{invoice_item}:
+    get:
+      tags: [Invoices]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: invoice_item
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+    put:
+      tags: [Invoices]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: invoice_item
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags: [Invoices]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: invoice_item
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: No Content
   /payments:
     get:
       tags: [Payments]
@@ -274,9 +401,91 @@ paths:
       tags: [Payments]
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invoice_id, amount]
+              properties:
+                invoice_id:
+                  type: integer
+                provider:
+                  type: string
+                  enum: [manual, mercadopago, paypal]
+                provider_payment_id:
+                  type: string
+                paypal_order_id:
+                  type: string
+                paypal_payer_id:
+                  type: string
+                amount:
+                  type: number
+                status:
+                  type: string
+                paid_at:
+                  type: string
+                  format: date-time
+                raw_payload:
+                  type: object
       responses:
         '201':
           description: Created
+  /payments/{payment}:
+    get:
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: payment
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+    put:
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: payment
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: payment
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: No Content
+  /payments/{payment}/checkout:
+    post:
+      tags: [Payments]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: payment
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Checkout URL
   /reports/revenue:
     get:
       tags: [Reports]
@@ -300,7 +509,33 @@ paths:
         - bearerAuth: []
       responses:
         '200':
-          description: CSV export payload
+          description: CSV file download
+  /webhooks/mercadopago:
+    post:
+      tags: [Webhooks]
+      summary: MercadoPago webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Acknowledged
+  /webhooks/paypal:
+    post:
+      tags: [Webhooks]
+      summary: PayPal webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Acknowledged
 components:
   securitySchemes:
     bearerAuth:
