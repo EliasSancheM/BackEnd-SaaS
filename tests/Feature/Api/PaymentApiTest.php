@@ -22,7 +22,7 @@ class PaymentApiTest extends TestCase
         $response->assertOk()->assertJsonStructure(['data']);
     }
 
-    public function test_store_creates_payment(): void
+    public function test_store_creates_mercadopago_payment(): void
     {
         $this->seedDemoData();
         $user = User::where('email', 'test@example.com')->firstOrFail();
@@ -32,12 +32,54 @@ class PaymentApiTest extends TestCase
 
         $response = $this->postJson('/api/payments', [
             'invoice_id' => $invoice->id,
-            'provider' => 'manual',
+            'provider' => 'mercadopago',
+            'provider_payment_id' => 'MP12345',
             'amount' => 119000,
             'status' => 'pending',
         ]);
 
-        $response->assertCreated()->assertJsonPath('provider', 'manual');
+        $response->assertCreated()->assertJsonPath('provider', 'mercadopago');
+    }
+
+    public function test_store_creates_paypal_payment(): void
+    {
+        $this->seedDemoData();
+        $user = User::where('email', 'test@example.com')->firstOrFail();
+        $invoice = Invoice::where('number', 'F-00000001')->firstOrFail();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/payments', [
+            'invoice_id' => $invoice->id,
+            'provider' => 'paypal',
+            'provider_payment_id' => 'PP-ORDER-12345',
+            'paypal_order_id' => 'PAY-ORDER-ABC-123',
+            'paypal_payer_id' => 'PAYERID-999',
+            'amount' => 25000,
+            'status' => 'completed',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('provider', 'paypal')
+            ->assertJsonPath('paypal_order_id', 'PAY-ORDER-ABC-123')
+            ->assertJsonPath('paypal_payer_id', 'PAYERID-999');
+    }
+
+    public function test_store_validates_provider(): void
+    {
+        $this->seedDemoData();
+        $user = User::where('email', 'test@example.com')->firstOrFail();
+        $invoice = Invoice::where('number', 'F-00000001')->firstOrFail();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/payments', [
+            'invoice_id' => $invoice->id,
+            'provider' => 'invalid_provider',
+            'amount' => 1000,
+        ]);
+
+        $response->assertStatus(422);
     }
 
     public function test_update_changes_payment(): void
