@@ -134,3 +134,6 @@ PAYPAL_WEBHOOK_ID=...
 - Multi-tenant por `tenant_id` con scope global.
 - Los roles y permisos se asignan por tenant (Spatie teams).
 - Los emails de factura se envían con `MAIL_MAILER=log` en desarrollo.
+
+## Pendiente
+- **PayPal webhook**: crear el webhook en PayPal Developer Dashboard apuntando a `POST /api/webhooks/paypal` con el evento `CHECKOUT.ORDER.APPROVED`, copiar el Webhook ID a `PAYPAL_WEBHOOK_ID` en `.env`, y habilitar la verificación de firma en `PayPalWebhookController`.
