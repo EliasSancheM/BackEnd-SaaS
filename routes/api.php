@@ -5,6 +5,7 @@ use App\Http\Controllers\Clients\ClientController;
 use App\Http\Controllers\Invoices\InvoiceController;
 use App\Http\Controllers\Invoices\InvoiceItemController;
 use App\Http\Controllers\Invoices\InvoicePdfController;
+use App\Http\Controllers\Invoices\InvoiceSendController;
 use App\Http\Controllers\Payments\CheckoutController;
 use App\Http\Controllers\Payments\PaymentController;
 use App\Http\Controllers\Reports\ReportController;
@@ -32,6 +33,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
     Route::apiResource('payments', PaymentController::class);
     Route::post('/payments/{payment}/checkout', CheckoutController::class);
     Route::get('/invoices/{invoice}/pdf', [InvoicePdfController::class, 'show']);
+    Route::post('/invoices/{invoice}/send', InvoiceSendController::class);
     Route::get('/reports/revenue', [ReportController::class, 'revenue']);
     Route::get('/reports/invoices-summary', [ReportController::class, 'invoicesSummary']);
     Route::get('/reports/export/csv', [ReportController::class, 'exportCsv']);
