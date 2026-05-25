@@ -19,11 +19,15 @@ class PaymentFactory extends Factory
      */
     public function definition(): array
     {
+        $provider = fake()->randomElement(['mercadopago', 'paypal']);
+
         return [
             'tenant_id' => Tenant::factory(),
             'invoice_id' => Invoice::factory(),
-            'provider' => 'mercadopago',
-            'mp_payment_id' => (string) fake()->unique()->numberBetween(1000000, 9999999),
+            'provider' => $provider,
+            'provider_payment_id' => (string) fake()->unique()->numberBetween(1000000, 9999999),
+            'paypal_order_id' => $provider === 'paypal' ? fake()->uuid() : null,
+            'paypal_payer_id' => $provider === 'paypal' ? 'PAYERID'.fake()->unique()->numberBetween(1000000, 9999999) : null,
             'amount' => fake()->randomFloat(2, 1000, 100000),
             'status' => 'pending',
             'paid_at' => null,

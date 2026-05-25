@@ -24,8 +24,10 @@ class StorePaymentRequest extends FormRequest
     {
         return [
             'invoice_id' => ['required', 'integer', 'exists:invoices,id'],
-            'provider' => ['sometimes', 'string', 'max:255'],
-            'mp_payment_id' => ['nullable', 'string', 'max:255'],
+            'provider' => ['sometimes', 'string', 'in:manual,mercadopago,paypal'],
+            'provider_payment_id' => ['nullable', 'string', 'max:255'],
+            'paypal_order_id' => ['nullable', 'string', 'max:255'],
+            'paypal_payer_id' => ['nullable', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
             'status' => ['sometimes', 'string', 'max:255'],
             'paid_at' => ['nullable', 'date'],

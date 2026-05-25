@@ -76,7 +76,7 @@ class DemoDataSeeder extends Seeder
             'tenant_id' => $tenant->id,
             'invoice_id' => $invoice->id,
             'provider' => 'mercadopago',
-            'mp_payment_id' => '12345678',
+            'provider_payment_id' => '12345678',
             'amount' => 119000,
             'status' => 'pending',
             'paid_at' => null,
