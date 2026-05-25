@@ -3,8 +3,6 @@
 [![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel)](https://laravel.com)
 [![PHP](https://img.shields.io/badge/PHP-8.5-777BB4?logo=php)](https://php.net)
 [![Tests](https://img.shields.io/badge/tests-56%20passed-brightgreen)](#)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-
 API REST multi-tenant para facturación electrónica con pagos integrados (MercadoPago + PayPal).
 
 ---
