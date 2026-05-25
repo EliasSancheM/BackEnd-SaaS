@@ -10,6 +10,8 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class AuthController extends Controller
 {
@@ -30,6 +32,27 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
+
+        setPermissionsTeamId($tenant->id);
+
+        $permissions = [
+            'clients.view', 'clients.create', 'clients.edit', 'clients.delete',
+            'invoices.view', 'invoices.create', 'invoices.edit', 'invoices.send', 'invoices.delete',
+            'reports.view', 'reports.export',
+        ];
+
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
+        }
+
+        foreach (['owner', 'admin', 'billing', 'viewer'] as $roleName) {
+            Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web', 'tenant_id' => $tenant->id]);
+        }
+
+        $ownerRole = Role::where('name', 'owner')->where('tenant_id', $tenant->id)->first();
+        $ownerRole->syncPermissions($permissions);
+
+        $user->assignRole('owner');
 
         $token = $user->createToken('api')->plainTextToken;
 

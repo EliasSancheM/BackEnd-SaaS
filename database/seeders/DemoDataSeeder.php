@@ -10,6 +10,8 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class DemoDataSeeder extends Seeder
@@ -28,12 +30,33 @@ class DemoDataSeeder extends Seeder
             'trial_ends_at' => now()->addDays(14),
         ]);
 
-        User::create([
+        $user = User::create([
             'tenant_id' => $tenant->id,
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => Hash::make('password'),
         ]);
+
+        setPermissionsTeamId($tenant->id);
+
+        $permissions = [
+            'clients.view', 'clients.create', 'clients.edit', 'clients.delete',
+            'invoices.view', 'invoices.create', 'invoices.edit', 'invoices.send', 'invoices.delete',
+            'reports.view', 'reports.export',
+        ];
+
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
+        }
+
+        foreach (['owner', 'admin', 'billing', 'viewer'] as $roleName) {
+            Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web', 'tenant_id' => $tenant->id]);
+        }
+
+        $ownerRole = Role::where('name', 'owner')->where('tenant_id', $tenant->id)->first();
+        $ownerRole->syncPermissions($permissions);
+
+        $user->assignRole('owner');
 
         $client = Client::create([
             'tenant_id' => $tenant->id,
