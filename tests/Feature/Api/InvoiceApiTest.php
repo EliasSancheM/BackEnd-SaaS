@@ -135,4 +135,36 @@ class InvoiceApiTest extends TestCase
 
         $response->assertNoContent();
     }
+
+    public function test_send_changes_status_to_sent(): void
+    {
+        $this->seedDemoData();
+        $user = User::where('email', 'test@example.com')->firstOrFail();
+
+        Sanctum::actingAs($user);
+
+        $client = Client::factory()->create(['tenant_id' => $user->tenant_id, 'email' => 'client@test.cl']);
+        $draft = Invoice::factory()->create([
+            'tenant_id' => $user->tenant_id,
+            'client_id' => $client->id,
+            'status' => 'draft',
+        ]);
+
+        $response = $this->postJson("/api/invoices/{$draft->id}/send");
+
+        $response->assertOk()->assertJsonPath('invoice.status', 'sent');
+    }
+
+    public function test_send_fails_for_non_draft(): void
+    {
+        $this->seedDemoData();
+        $user = User::where('email', 'test@example.com')->firstOrFail();
+        $sent = Invoice::where('number', 'F-00000001')->firstOrFail();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson("/api/invoices/{$sent->id}/send");
+
+        $response->assertStatus(422);
+    }
 }
