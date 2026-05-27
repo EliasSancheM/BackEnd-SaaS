@@ -58,7 +58,7 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user' => $user->load('tenant'),
+            'user' => $user->load(['tenant', 'roles']),
         ], 201);
     }
 
@@ -76,13 +76,13 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user' => $user->load(['tenant']),
+            'user' => $user->load(['tenant', 'roles']),
         ]);
     }
 
     public function me(): JsonResponse
     {
-        return response()->json(request()->user()?->load(['tenant']));
+        return response()->json(request()->user()?->load(['tenant', 'roles']));
     }
 
     public function logout(): JsonResponse
