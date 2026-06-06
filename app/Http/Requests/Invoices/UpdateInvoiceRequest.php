@@ -41,6 +41,7 @@ class UpdateInvoiceRequest extends FormRequest
             'due_date' => ['nullable', 'date'],
             'status' => ['sometimes', 'string', 'in:draft,sent,paid,overdue,cancelled'],
             'currency' => ['sometimes', 'string', 'size:3'],
+            'tax_rate' => ['sometimes', 'numeric', 'min:0', 'max:100'],
             'subtotal' => ['sometimes', 'numeric', 'min:0'],
             'tax_total' => ['sometimes', 'numeric', 'min:0'],
             'total' => ['sometimes', 'numeric', 'min:0'],
