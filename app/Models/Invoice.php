@@ -78,6 +78,20 @@ class Invoice extends Model
         return $this->hasMany(Payment::class);
     }
 
+    /**
+     * Recompute subtotal/total from the persisted line items. Tax is preserved
+     * as-is since there is no per-item tax rate in the current schema.
+     */
+    public function recalculateTotals(): void
+    {
+        $subtotal = (float) $this->items()->sum('total');
+
+        $this->forceFill([
+            'subtotal' => $subtotal,
+            'total' => round($subtotal + (float) $this->tax_total, 2),
+        ])->saveQuietly();
+    }
+
     protected static function booted(): void
     {
         static::addGlobalScope('tenant', function (Builder $builder): void {

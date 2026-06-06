@@ -58,5 +58,14 @@ class InvoiceItem extends Model
                 $builder->where('tenant_id', auth()->user()->tenant_id);
             }
         });
+
+        // Derive the line total server-side; never trust a client-supplied total.
+        static::saving(function (InvoiceItem $item): void {
+            $item->total = round((float) $item->quantity * (float) $item->unit_price, 2);
+        });
+
+        // Keep the parent invoice's subtotal/total in sync with its items.
+        static::saved(fn (InvoiceItem $item) => $item->invoice?->recalculateTotals());
+        static::deleted(fn (InvoiceItem $item) => $item->invoice?->recalculateTotals());
     }
 }

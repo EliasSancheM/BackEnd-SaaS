@@ -4,6 +4,7 @@ namespace App\Http\Requests\Payments;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdatePaymentRequest extends FormRequest
 {
@@ -18,7 +19,10 @@ class UpdatePaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'invoice_id' => ['sometimes', 'integer', 'exists:invoices,id'],
+            'invoice_id' => [
+                'sometimes', 'integer',
+                Rule::exists('invoices', 'id')->where('tenant_id', $this->user()->tenant_id),
+            ],
             'provider' => ['sometimes', 'string', 'in:manual,mercadopago,paypal'],
             'provider_payment_id' => ['nullable', 'string', 'max:255'],
             'paypal_order_id' => ['nullable', 'string', 'max:255'],

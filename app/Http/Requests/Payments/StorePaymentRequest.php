@@ -4,6 +4,7 @@ namespace App\Http\Requests\Payments;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StorePaymentRequest extends FormRequest
 {
@@ -23,7 +24,10 @@ class StorePaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'invoice_id' => ['required', 'integer', 'exists:invoices,id'],
+            'invoice_id' => [
+                'required', 'integer',
+                Rule::exists('invoices', 'id')->where('tenant_id', $this->user()->tenant_id),
+            ],
             'provider' => ['sometimes', 'string', 'in:manual,mercadopago,paypal'],
             'provider_payment_id' => ['nullable', 'string', 'max:255'],
             'paypal_order_id' => ['nullable', 'string', 'max:255'],

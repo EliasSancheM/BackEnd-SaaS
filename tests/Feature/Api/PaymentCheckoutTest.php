@@ -5,7 +5,9 @@ namespace Tests\Feature\Api;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\Payments\PayPalService;
 use Laravel\Sanctum\Sanctum;
+use Mockery;
 use Tests\TestCase;
 
 class PaymentCheckoutTest extends TestCase
@@ -53,10 +55,28 @@ class PaymentCheckoutTest extends TestCase
 
     public function test_paypal_webhook_handles_unhandled_event(): void
     {
+        $this->mock(PayPalService::class, function (Mockery\MockInterface $mock): void {
+            $mock->shouldReceive('verifyWebhookSignature')->andReturnTrue();
+        });
+
         $response = $this->postJson('/api/webhooks/paypal', [
             'event_type' => 'UNKNOWN.EVENT',
         ]);
 
         $response->assertStatus(200);
+    }
+
+    public function test_paypal_webhook_rejects_invalid_signature(): void
+    {
+        $this->mock(PayPalService::class, function (Mockery\MockInterface $mock): void {
+            $mock->shouldReceive('verifyWebhookSignature')->andReturnFalse();
+        });
+
+        $response = $this->postJson('/api/webhooks/paypal', [
+            'event_type' => 'CHECKOUT.ORDER.APPROVED',
+            'resource' => ['id' => 'FAKE-ORDER-ID'],
+        ]);
+
+        $response->assertStatus(401);
     }
 }
