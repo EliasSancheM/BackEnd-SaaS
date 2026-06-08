@@ -19,7 +19,16 @@ class Tenant extends Model
         'name',
         'slug',
         'plan',
+        'settings',
         'trial_ends_at',
+    ];
+
+    /**
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'settings' => 'array',
+        'trial_ends_at' => 'datetime',
     ];
 
     /**
