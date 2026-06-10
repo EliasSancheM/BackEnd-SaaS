@@ -15,8 +15,8 @@ use App\Http\Controllers\Webhooks\MercadoPagoWebhookController;
 use App\Http\Controllers\Webhooks\PayPalWebhookController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
 Route::post('/webhooks/mercadopago', MercadoPagoWebhookController::class)
     ->name('webhooks.mercadopago');

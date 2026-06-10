@@ -4,6 +4,7 @@ namespace App\Http\Requests\Invoices;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreInvoiceRequest extends FormRequest
 {
@@ -22,9 +23,17 @@ class StoreInvoiceRequest extends FormRequest
      */
     public function rules(): array
     {
+        $tenantId = $this->user()->tenant_id;
+
         return [
-            'client_id' => ['required', 'integer', 'exists:clients,id'],
-            'number' => ['required', 'string', 'max:255', 'unique:invoices,number'],
+            'client_id' => [
+                'required', 'integer',
+                Rule::exists('clients', 'id')->where('tenant_id', $tenantId),
+            ],
+            'number' => [
+                'required', 'string', 'max:255',
+                Rule::unique('invoices', 'number')->where('tenant_id', $tenantId),
+            ],
             'issue_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date'],
             'status' => ['sometimes', 'string', 'in:draft,sent,paid,overdue,cancelled'],

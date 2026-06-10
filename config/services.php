@@ -38,12 +38,14 @@ return [
     'mercadopago' => [
         'public_key' => env('MERCADOPAGO_PUBLIC_KEY'),
         'access_token' => env('MERCADOPAGO_ACCESS_TOKEN'),
+        'webhook_secret' => env('MERCADOPAGO_WEBHOOK_SECRET'),
     ],
 
     'paypal' => [
         'client_id' => env('PAYPAL_CLIENT_ID'),
         'secret' => env('PAYPAL_SECRET'),
         'mode' => env('PAYPAL_MODE', 'sandbox'),
+        'webhook_id' => env('PAYPAL_WEBHOOK_ID'),
     ],
 
 ];

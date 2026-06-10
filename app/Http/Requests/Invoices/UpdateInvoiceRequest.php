@@ -4,6 +4,7 @@ namespace App\Http\Requests\Invoices;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateInvoiceRequest extends FormRequest
 {
@@ -22,9 +23,20 @@ class UpdateInvoiceRequest extends FormRequest
      */
     public function rules(): array
     {
+        $tenantId = $this->user()->tenant_id;
+        $invoiceId = $this->route('invoice')?->id;
+
         return [
-            'client_id' => ['sometimes', 'integer', 'exists:clients,id'],
-            'number' => ['sometimes', 'string', 'max:255'],
+            'client_id' => [
+                'sometimes', 'integer',
+                Rule::exists('clients', 'id')->where('tenant_id', $tenantId),
+            ],
+            'number' => [
+                'sometimes', 'string', 'max:255',
+                Rule::unique('invoices', 'number')
+                    ->where('tenant_id', $tenantId)
+                    ->ignore($invoiceId),
+            ],
             'issue_date' => ['sometimes', 'date'],
             'due_date' => ['nullable', 'date'],
             'status' => ['sometimes', 'string', 'in:draft,sent,paid,overdue,cancelled'],

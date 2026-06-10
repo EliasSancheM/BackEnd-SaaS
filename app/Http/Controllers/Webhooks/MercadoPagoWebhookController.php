@@ -22,6 +22,10 @@ class MercadoPagoWebhookController extends Controller
             return response()->json(['message' => 'Invalid payload'], 400);
         }
 
+        if (! $this->signatureIsValid($request, (string) $resourceId)) {
+            return response()->json(['message' => 'Invalid signature'], 401);
+        }
+
         if ($topic !== 'payment') {
             return response()->json(['message' => 'Unhandled topic'], 200);
         }
@@ -60,5 +64,46 @@ class MercadoPagoWebhookController extends Controller
         } catch (\Throwable $e) {
             return response()->json(['message' => 'Error processing webhook'], 500);
         }
+    }
+
+    /**
+     * Verify the `x-signature` header sent by MercadoPago.
+     *
+     * The signed manifest is `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`
+     * hashed with HMAC-SHA256 using the webhook secret.
+     *
+     * @see https://www.mercadopago.com/developers/en/docs/your-integrations/notifications/webhooks
+     */
+    private function signatureIsValid(Request $request, string $resourceId): bool
+    {
+        $secret = config('services.mercadopago.webhook_secret');
+
+        if (! $secret) {
+            return false;
+        }
+
+        $signature = $request->header('x-signature', '');
+        $requestId = $request->header('x-request-id', '');
+
+        // Parse `ts=<unix>,v1=<hash>` into its parts.
+        $parts = [];
+        foreach (explode(',', $signature) as $segment) {
+            [$key, $value] = array_pad(explode('=', trim($segment), 2), 2, null);
+            if ($key !== null && $value !== null) {
+                $parts[trim($key)] = trim($value);
+            }
+        }
+
+        $ts = $parts['ts'] ?? null;
+        $hash = $parts['v1'] ?? null;
+
+        if (! $ts || ! $hash) {
+            return false;
+        }
+
+        $manifest = sprintf('id:%s;request-id:%s;ts:%s;', strtolower($resourceId), $requestId, $ts);
+        $expected = hash_hmac('sha256', $manifest, $secret);
+
+        return hash_equals($expected, $hash);
     }
 }
