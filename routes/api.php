@@ -27,6 +27,7 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::get('/tenant', [TenantController::class, 'show']);
+    Route::put('/tenant', [TenantController::class, 'update'])->middleware('role:admin');
 
     Route::get('/clients', [ClientController::class, 'index'])->middleware('role:viewer');
     Route::get('/clients/{client}', [ClientController::class, 'show'])->middleware('role:viewer');

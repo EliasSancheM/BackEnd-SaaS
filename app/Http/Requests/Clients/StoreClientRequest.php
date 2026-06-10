@@ -29,6 +29,7 @@ class StoreClientRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
+            'status' => ['sometimes', 'string', 'in:active,inactive'],
             'notes' => ['nullable', 'string'],
         ];
     }

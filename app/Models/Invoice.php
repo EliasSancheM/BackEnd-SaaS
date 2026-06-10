@@ -25,6 +25,7 @@ class Invoice extends Model
         'due_date',
         'status',
         'currency',
+        'tax_rate',
         'subtotal',
         'tax_total',
         'total',
@@ -41,6 +42,7 @@ class Invoice extends Model
         'due_date' => 'date',
         'sent_at' => 'datetime',
         'paid_at' => 'datetime',
+        'tax_rate' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'tax_total' => 'decimal:2',
         'total' => 'decimal:2',
@@ -85,10 +87,12 @@ class Invoice extends Model
     public function recalculateTotals(): void
     {
         $subtotal = (float) $this->items()->sum('total');
+        $taxTotal = round($subtotal * ((float) $this->tax_rate / 100), 2);
 
         $this->forceFill([
             'subtotal' => $subtotal,
-            'total' => round($subtotal + (float) $this->tax_total, 2),
+            'tax_total' => $taxTotal,
+            'total' => round($subtotal + $taxTotal, 2),
         ])->saveQuietly();
     }
 

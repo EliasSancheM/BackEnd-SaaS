@@ -72,6 +72,9 @@ class AuthController extends Controller
             return response()->json(['message' => 'Credenciales inválidas.'], 422);
         }
 
+        // Spatie teams: fijar el tenant para que la relación roles se cargue.
+        setPermissionsTeamId($user->tenant_id);
+
         $token = $user->createToken('api')->plainTextToken;
 
         return response()->json([
@@ -82,7 +85,13 @@ class AuthController extends Controller
 
     public function me(): JsonResponse
     {
-        return response()->json(request()->user()?->load(['tenant', 'roles']));
+        $user = request()->user();
+
+        if ($user) {
+            setPermissionsTeamId($user->tenant_id);
+        }
+
+        return response()->json($user?->load(['tenant', 'roles']));
     }
 
     public function logout(): JsonResponse
