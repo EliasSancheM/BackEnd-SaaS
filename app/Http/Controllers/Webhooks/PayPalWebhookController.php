@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Webhooks;
 use App\Models\Payment;
 use App\Services\Payments\PayPalService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -16,19 +17,6 @@ class PayPalWebhookController extends Controller
 
     public function __invoke(Request $request): JsonResponse
     {
-        // Browser redirect after the buyer approves the order (not a signed webhook).
-        // The capture call below authenticates against PayPal with our own
-        // credentials, so the order id alone cannot be used to forge a payment.
-        if ($request->query('action') === 'return') {
-            $token = $request->input('token');
-
-            if (! $token) {
-                return response()->json(['message' => 'Missing token'], 400);
-            }
-
-            return $this->capture($token);
-        }
-
         // Server-to-server webhook: must carry a valid PayPal signature.
         if (! $this->paypal->verifyWebhookSignature($this->normalizeHeaders($request), $request->getContent())) {
             return response()->json(['message' => 'Invalid signature'], 401);
@@ -45,6 +33,29 @@ class PayPalWebhookController extends Controller
         }
 
         return response()->json(['message' => 'Unhandled event type'], 200);
+    }
+
+    public function return(Request $request): RedirectResponse
+    {
+        $frontendUrl = rtrim(env('FRONTEND_URL', 'http://localhost:3000'), '/');
+        $token = $request->query('token');
+
+        if (! $token) {
+            return redirect($frontendUrl.'/invoices?payment=failed');
+        }
+
+        $result = $this->capture((string) $token);
+
+        $redirectPath = $result->status() === 200 ? '/invoices?payment=success' : '/invoices?payment=failed';
+
+        return redirect($frontendUrl.$redirectPath);
+    }
+
+    public function cancel(): RedirectResponse
+    {
+        $frontendUrl = rtrim(env('FRONTEND_URL', 'http://localhost:3000'), '/');
+
+        return redirect($frontendUrl.'/invoices?payment=cancelled');
     }
 
     private function capture(string $orderId): JsonResponse

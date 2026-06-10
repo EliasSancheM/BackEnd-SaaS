@@ -22,6 +22,10 @@ Route::post('/webhooks/mercadopago', MercadoPagoWebhookController::class)
     ->name('webhooks.mercadopago');
 Route::post('/webhooks/paypal', PayPalWebhookController::class)
     ->name('webhooks.paypal');
+Route::get('/webhooks/paypal/return', [PayPalWebhookController::class, 'return'])
+    ->name('paypal.return');
+Route::get('/webhooks/paypal/cancel', [PayPalWebhookController::class, 'cancel'])
+    ->name('paypal.cancel');
 
 Route::middleware(['auth:sanctum', 'tenant'])->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);
